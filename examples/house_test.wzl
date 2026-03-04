@@ -1,0 +1,11 @@
+Hogwarts Slytherin
+
+Lumos "Welcome young wizard"
+
+Alohomora age = 15
+
+Expecto age >= 18
+    Lumos "Adult wizard"
+Otherwise
+    Lumos "Still a Hogwarts student"
+EndSpell

@@ -1,0 +1,10 @@
+Lumos "Practice Magic"
+
+Alohomora counter = 1
+
+Reparo counter until 6
+    Lumos counter
+    Leviosa counter
+EndSpell
+
+Lumos "Spell Finished"

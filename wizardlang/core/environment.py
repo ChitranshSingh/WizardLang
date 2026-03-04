@@ -4,10 +4,15 @@ class Environment:
         self.variables = {}
         self.house = "Hogwarts"
 
+    def set_house(self, house):
+        self.house = house
+
     def set_variable(self, name, value):
         self.variables[name] = value
 
     def get_variable(self, name):
+
         if name not in self.variables:
             raise Exception(f"Variable '{name}' not defined")
+
         return self.variables[name]

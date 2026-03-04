@@ -2,6 +2,7 @@ from wizardlang.spells.lumos import lumos
 from wizardlang.spells.variables import alohomora
 from wizardlang.spells.input_spell import legilimens
 from wizardlang.spells.math_spells import leviosa, descendo
+from wizardlang.spells.hogwarts import hogwarts
 
 
 def parse_line(line, env):
@@ -26,6 +27,9 @@ def parse_line(line, env):
 
     elif line.startswith("AvadaKedavra"):
         exit()
+    
+    elif line.startswith("Hogwarts"):
+        hogwarts(line, env)
 
     else:
         print("Unknown spell:", line)
