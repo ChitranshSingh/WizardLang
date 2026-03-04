@@ -1,0 +1,16 @@
+Hogwarts Gryffindor
+
+Lumos "Welcome to Hogwarts"
+
+Alohomora counter = 1
+
+Reparo counter until 3
+    Lumos counter
+    Leviosa counter
+EndSpell
+
+Expecto counter >= 4
+    Lumos "Training complete"
+Otherwise
+    Lumos "Practice more magic"
+EndSpell
