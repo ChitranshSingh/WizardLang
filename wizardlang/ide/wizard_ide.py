@@ -17,8 +17,148 @@ from PyQt6.QtWidgets import (
     QComboBox
 )
 
+from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
+from PyQt6.QtCore import QRegularExpression
+from PyQt6.QtWidgets import QCompleter
+from PyQt6.QtCore import QStringListModel
 from wizardlang.core.interpreter import Interpreter
+from PyQt6.QtWidgets import QDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QPlainTextEdit, QWidget
+from PyQt6.QtCore import QRect, QSize
+from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtWidgets import QSplashScreen
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt
+import time
 
+
+class WizardSplash(QSplashScreen):
+
+    def __init__(self):
+
+        pixmap = QPixmap(500, 300)
+        pixmap.fill(QColor("#1e1e1e"))
+
+        super().__init__(pixmap)
+
+        self.showMessage(
+            "🧙 WizardLang\nSchool of Magical Programming",
+            Qt.AlignmentFlag.AlignCenter,
+            QColor("gold")
+        )
+
+class LineNumberArea(QWidget):
+
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.codeEditor = editor
+
+    def sizeHint(self):
+        return QSize(self.codeEditor.line_number_area_width(), 0)
+
+    def paintEvent(self, event):
+        self.codeEditor.line_number_area_paint_event(event)
+
+
+class CodeEditor(QPlainTextEdit):
+
+    def __init__(self):
+        super().__init__()
+
+        self.lineNumberArea = LineNumberArea(self)
+
+        self.blockCountChanged.connect(self.update_line_number_area_width)
+        self.updateRequest.connect(self.update_line_number_area)
+
+        self.update_line_number_area_width(0)
+
+    def line_number_area_width(self):
+
+        digits = len(str(max(1, self.blockCount())))
+        return 10 + digits * 7
+
+    def update_line_number_area_width(self, _):
+        self.setViewportMargins(self.line_number_area_width(), 0, 0, 0)
+
+    def update_line_number_area(self, rect, dy):
+
+        if dy:
+            self.lineNumberArea.scroll(0, dy)
+
+        else:
+            self.lineNumberArea.update(
+                0, rect.y(),
+                self.lineNumberArea.width(),
+                rect.height()
+            )
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        cr = self.contentsRect()
+        self.lineNumberArea.setGeometry(
+            QRect(cr.left(), cr.top(),
+                  self.line_number_area_width(),
+                  cr.height())
+        )
+
+    def line_number_area_paint_event(self, event):
+
+        painter = QPainter(self.lineNumberArea)
+        painter.fillRect(event.rect(), QColor("#2b2b2b"))
+
+        block = self.firstVisibleBlock()
+        block_number = block.blockNumber()
+
+        top = int(self.blockBoundingGeometry(block).translated(
+            self.contentOffset()).top())
+
+        height = int(self.blockBoundingRect(block).height())
+
+        while block.isValid() and top <= event.rect().bottom():
+
+            if block.isVisible():
+
+                number = str(block_number + 1)
+
+                painter.setPen(QColor("#aaaaaa"))
+
+                painter.drawText(
+                    0, top,
+                    self.lineNumberArea.width(),
+                    height,
+                    0,
+                    number
+                )
+
+            block = block.next()
+            top += height
+            block_number += 1
+
+class StartupScreen(QDialog):
+
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Welcome Wizard")
+        self.setGeometry(400, 300, 400, 200)
+
+        layout = QVBoxLayout()
+
+        label = QLabel(
+            "🧙 Welcome to WizardLang\n"
+            "School of Magical Programming"
+        )
+
+        layout.addWidget(label)
+
+        button = QPushButton("Enter Hogwarts ⚡")
+        button.clicked.connect(self.accept)
+
+        layout.addWidget(button)
+
+        self.setLayout(layout)
 
 class WizardIDE(QWidget):
 
@@ -34,9 +174,38 @@ class WizardIDE(QWidget):
         main_layout.addWidget(title)
 
         # Code editor
-        self.editor = QTextEdit()
+        from PyQt6.QtWidgets import QPlainTextEdit
+        self.editor = CodeEditor()   
         self.editor.setPlaceholderText("Write your spells here...")
         main_layout.addWidget(self.editor)
+
+        self.setLayout(main_layout)
+
+        self.highlighter = SpellHighlighter(self.editor.document())
+
+        spell_list = [
+            "Lumos",
+            "Alohomora",
+            "Expecto",
+            "Otherwise",
+            "EndSpell",
+            "Reparo",
+            "Leviosa",
+            "Descendo",
+            "Legilimens",
+            "Hogwarts"
+        ]
+
+        model = QStringListModel()
+        model.setStringList(spell_list)
+
+        self.completer = QCompleter()
+        self.completer.setModel(model)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.completer.setWidget(self.editor)
+        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
         # Output console
         self.output = QTextEdit()
@@ -109,7 +278,7 @@ class WizardIDE(QWidget):
                 with open(file_path, "r") as f:
                     code = f.read()
 
-            self.editor.setText(code)
+            self.editor.setPlainText(code)
 
     def save_file(self):
 
@@ -132,38 +301,112 @@ class WizardIDE(QWidget):
             if house == "Gryffindor":
 
                 self.setStyleSheet("""
-                    QWidget { background-color: #7F0909; color: white; }
-                    QTextEdit { background-color: #AE0001; color: white; }
+                QWidget { background-color: #1e1e1e; color: #f8f8f2; }
+                QPlainTextEdit { background-color: #2b2b2b; color: #f8f8f2; }
+                QPushButton { background-color: #740001; color: white; }
                 """)
 
             elif house == "Ravenclaw":
 
                 self.setStyleSheet("""
-                    QWidget { background-color: #0E1A40; color: white; }
-                    QTextEdit { background-color: #222F5B; color: white; }
+                QWidget { background-color: #0e1a40; color: white; }
+                QPlainTextEdit { background-color: #1b2a60; color: white; }
+                QPushButton { background-color: #946b2d; color: white; }
                 """)
 
             elif house == "Hufflepuff":
 
                 self.setStyleSheet("""
-                    QWidget { background-color: #FFDB00; color: black; }
-                    QTextEdit { background-color: #FFF4B2; color: black; }
+                QWidget { background-color: #1e1e1e; color: #f0e68c; }
+                QPlainTextEdit { background-color: #2b2b2b; color: #f0e68c; }
+                QPushButton { background-color: #caa400; color: black; }
                 """)
 
             elif house == "Slytherin":
 
                 self.setStyleSheet("""
-                    QWidget { background-color: #1A472A; color: white; }
-                    QTextEdit { background-color: #2A623D; color: white; }
+                QWidget { background-color: #0f2f1f; color: white; }
+                QPlainTextEdit { background-color: #1a472a; color: white; }
+                QPushButton { background-color: #2a623d; color: white; }
                 """)
 
+    def keyPressEvent(self, event):
+
+        super().keyPressEvent(event)
+
+        cursor = self.editor.textCursor()
+        cursor.select(cursor.SelectionType.WordUnderCursor)
+
+        word = cursor.selectedText()
+
+        if len(word) >= 1:
+
+            self.completer.setCompletionPrefix(word)
+            popup = self.completer.popup()
+
+            rect = self.editor.cursorRect()
+
+            popup.setCurrentIndex(
+                self.completer.completionModel().index(0, 0)
+            )
+
+            self.completer.complete(rect)
+
+
+class SpellHighlighter(QSyntaxHighlighter):
+
+    def __init__(self, document):
+        super().__init__(document)
+
+        self.rules = []
+
+        def create_format(color):
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(color))
+            fmt.setFontWeight(QFont.Weight.Bold)
+            return fmt
+
+        spells = {
+            "Lumos": "#FFD700",
+            "Alohomora": "#00BFFF",
+            "Expecto": "#DA70D6",
+            "Reparo": "#32CD32",
+            "Hogwarts": "#FF4500",
+            "Leviosa": "#7FFFD4",
+            "Descendo": "#FF6347",
+            "Legilimens": "#8A2BE2"
+        }
+
+        for spell, color in spells.items():
+            pattern = QRegularExpression(rf"\b{spell}\b")
+            self.rules.append((pattern, create_format(color)))
+
+    def highlightBlock(self, text):
+
+        for pattern, fmt in self.rules:
+
+            iterator = pattern.globalMatch(text)
+
+            while iterator.hasNext():
+                match = iterator.next()
+                start = match.capturedStart()
+                length = match.capturedLength()
+
+                self.setFormat(start, length, fmt)
 
 def main():
 
     app = QApplication(sys.argv)
 
+    splash = WizardSplash()
+    splash.show()
+
+    time.sleep(2)
+
     window = WizardIDE()
     window.show()
+
+    splash.finish(window)
 
     sys.exit(app.exec())
 
