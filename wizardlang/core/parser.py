@@ -6,7 +6,7 @@ from wizardlang.spells.math_spells import leviosa, descendo
 
 def parse_line(line, env):
 
-    if line.startswith("Expecto"):
+    if line.startswith("Expecto") or line.startswith("Reparo"):
         return
     
     elif line.startswith("Lumos"):

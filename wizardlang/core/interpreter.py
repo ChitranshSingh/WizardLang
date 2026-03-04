@@ -19,27 +19,52 @@ class Interpreter:
                 i += 1
                 continue
 
-            # ------------------------------
-            # CONDITIONAL STATEMENT
-            # ------------------------------
 
+            # --------------------------------
+            # REPARO LOOP
+            # --------------------------------
+            if line.startswith("Reparo"):
+
+                parts = line.replace("Reparo", "").strip().split("until")
+
+                variable = parts[0].strip()
+                limit = int(parts[1].strip())
+
+                loop_block = []
+
+                i += 1
+
+                # collect loop block
+                while i < len(lines) and lines[i].strip() != "EndSpell":
+                    loop_block.append(lines[i])
+                    i += 1
+
+                # execute loop
+                while self.env.get_variable(variable) < limit:
+                    self.run(loop_block)
+
+                i += 1
+                continue
+
+
+            # --------------------------------
+            # CONDITIONAL SPELL
+            # --------------------------------
             if line.startswith("Expecto"):
 
                 condition = line.replace("Expecto", "", 1).strip()
 
-                condition_result = eval(condition, {}, self.env.variables)
+                result = eval(condition, {}, self.env.variables)
 
                 if_block = []
                 else_block = []
 
                 i += 1
 
-                # collect IF block
                 while i < len(lines) and lines[i].strip() not in ["Otherwise", "EndSpell"]:
                     if_block.append(lines[i])
                     i += 1
 
-                # check for ELSE
                 if i < len(lines) and lines[i].strip() == "Otherwise":
                     i += 1
 
@@ -47,8 +72,7 @@ class Interpreter:
                         else_block.append(lines[i])
                         i += 1
 
-                # execute correct block
-                if condition_result:
+                if result:
                     self.run(if_block)
                 else:
                     self.run(else_block)
@@ -56,10 +80,10 @@ class Interpreter:
                 i += 1
                 continue
 
-            # ------------------------------
-            # NORMAL SPELLS
-            # ------------------------------
 
+            # --------------------------------
+            # NORMAL SPELLS
+            # --------------------------------
             parse_line(line, self.env)
 
             i += 1
