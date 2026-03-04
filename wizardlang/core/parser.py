@@ -1,4 +1,5 @@
 from wizardlang.core.spellbook import SPELLBOOK
+from wizardlang.errors.error_handler import handle_error
 
 
 def parse_line(line, env):
@@ -14,4 +15,4 @@ def parse_line(line, env):
         SPELLBOOK[spell](line, env)
 
     else:
-        print(f"Unknown spell: {spell}")
+        handle_error(env, f"Unknown spell '{spell}'")

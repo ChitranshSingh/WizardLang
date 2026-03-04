@@ -84,6 +84,11 @@ class Interpreter:
             # --------------------------------
             # NORMAL SPELLS
             # --------------------------------
-            parse_line(line, self.env)
+            try:
+                parse_line(line, self.env)
+
+            except Exception as e:
+                from wizardlang.errors.error_handler import handle_error
+                handle_error(self.env, str(e))
 
             i += 1

@@ -1,3 +1,6 @@
+from wizardlang.errors.error_handler import handle_error
+
+
 class Environment:
 
     def __init__(self):
@@ -13,6 +16,7 @@ class Environment:
     def get_variable(self, name):
 
         if name not in self.variables:
-            raise Exception(f"Variable '{name}' not defined")
+            handle_error(self, f"Variable '{name}' not defined")
+            return None
 
         return self.variables[name]
