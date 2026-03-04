@@ -1,0 +1,7 @@
+Alohomora score = 90
+
+Expecto score >= 50
+    Lumos "You passed OWLs!"
+Otherwise
+    Lumos "Better study more spells."
+EndSpell
