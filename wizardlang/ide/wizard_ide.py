@@ -60,11 +60,14 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.codeEditor.line_number_area_paint_event(event)
 
-
 class CodeEditor(QPlainTextEdit):
 
-    def __init__(self):
+    def __init__(self, completer=None):
         super().__init__()
+        self.completer = completer
+        if self.completer:
+            self.completer.setWidget(self)
+            self.completer.activated.connect(self.insert_completion)
 
         self.lineNumberArea = LineNumberArea(self)
 
@@ -136,6 +139,57 @@ class CodeEditor(QPlainTextEdit):
             top += height
             block_number += 1
 
+    def insert_completion(self, completion):
+        if not self.completer:
+            return
+
+        cursor = self.textCursor()
+        extra = len(completion) - len(self.completer.completionPrefix())
+        if extra <= 0:
+            return
+        cursor.movePosition(cursor.MoveOperation.Left)
+        cursor.movePosition(cursor.MoveOperation.EndOfWord)
+        cursor.insertText(completion[-extra:])
+        self.setTextCursor(cursor)
+
+    def text_under_cursor(self):
+        cursor = self.textCursor()
+        cursor.select(cursor.SelectionType.WordUnderCursor)
+        return cursor.selectedText()
+
+    def keyPressEvent(self, event):
+        if self.completer and self.completer.popup().isVisible():
+            if event.key() in (
+                Qt.Key.Key_Enter,
+                Qt.Key.Key_Return,
+                Qt.Key.Key_Escape,
+                Qt.Key.Key_Tab,
+                Qt.Key.Key_Backtab
+            ):
+                event.ignore()
+                return
+
+        super().keyPressEvent(event)
+
+        if not self.completer:
+            return
+
+        word = self.text_under_cursor()
+
+        if len(word) < 1:
+            self.completer.popup().hide()
+            return
+
+        self.completer.setCompletionPrefix(word)
+        popup = self.completer.popup()
+        rect = self.cursorRect()
+        rect.setWidth(
+            popup.sizeHintForColumn(0) +
+            popup.verticalScrollBar().sizeHint().width()
+        )
+        popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
+        self.completer.complete(rect)
+ 
 class StartupScreen(QDialog):
 
     def __init__(self):
@@ -173,16 +227,6 @@ class WizardIDE(QWidget):
         title = QLabel("🏰 WizardLang Hogwarts IDE")
         main_layout.addWidget(title)
 
-        # Code editor
-        from PyQt6.QtWidgets import QPlainTextEdit
-        self.editor = CodeEditor()   
-        self.editor.setPlaceholderText("Write your spells here...")
-        main_layout.addWidget(self.editor)
-
-        self.setLayout(main_layout)
-
-        self.highlighter = SpellHighlighter(self.editor.document())
-
         spell_list = [
             "Lumos",
             "Alohomora",
@@ -203,9 +247,16 @@ class WizardIDE(QWidget):
         self.completer.setModel(model)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self.completer.setWidget(self.editor)
-        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
+        # Code editor
+        from PyQt6.QtWidgets import QPlainTextEdit
+        self.editor = CodeEditor(self.completer)
+        self.editor.setPlaceholderText("Write your spells here...")
+        main_layout.addWidget(self.editor)
+
+        self.setLayout(main_layout)
+
+        self.highlighter = SpellHighlighter(self.editor.document())
 
         # Output console
         self.output = QTextEdit()
@@ -329,29 +380,6 @@ class WizardIDE(QWidget):
                 QPlainTextEdit { background-color: #1a472a; color: white; }
                 QPushButton { background-color: #2a623d; color: white; }
                 """)
-
-    def keyPressEvent(self, event):
-
-        super().keyPressEvent(event)
-
-        cursor = self.editor.textCursor()
-        cursor.select(cursor.SelectionType.WordUnderCursor)
-
-        word = cursor.selectedText()
-
-        if len(word) >= 1:
-
-            self.completer.setCompletionPrefix(word)
-            popup = self.completer.popup()
-
-            rect = self.editor.cursorRect()
-
-            popup.setCurrentIndex(
-                self.completer.completionModel().index(0, 0)
-            )
-
-            self.completer.complete(rect)
-
 
 class SpellHighlighter(QSyntaxHighlighter):
 
