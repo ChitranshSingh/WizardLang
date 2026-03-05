@@ -1,8 +1,10 @@
-from wizardlang.spells.lumos import lumos
-from wizardlang.spells.variables import alohomora
-from wizardlang.spells.input_spell import legilimens
-from wizardlang.spells.math_spells import leviosa, descendo
+"""Central registry that maps WizardLang spell names to Python handlers."""
+
 from wizardlang.spells.hogwarts import hogwarts
+from wizardlang.spells.input_spell import legilimens
+from wizardlang.spells.lumos import lumos
+from wizardlang.spells.math_spells import descendo, leviosa
+from wizardlang.spells.variables import alohomora
 
 
 SPELLBOOK = {
@@ -11,5 +13,5 @@ SPELLBOOK = {
     "Legilimens": legilimens,
     "Leviosa": leviosa,
     "Descendo": descendo,
-    "Hogwarts": hogwarts
+    "Hogwarts": hogwarts,
 }
