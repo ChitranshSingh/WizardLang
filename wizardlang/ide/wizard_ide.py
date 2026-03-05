@@ -14,7 +14,10 @@ from PyQt6.QtWidgets import (
     QLabel,
     QFileDialog,
     QHBoxLayout,
-    QComboBox
+    QComboBox,
+    QListWidget,
+    QListWidgetItem,
+    QSplitter
 )
 
 from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
@@ -214,6 +217,19 @@ class StartupScreen(QDialog):
 
         self.setLayout(layout)
 
+SPELL_DOCS = {
+    "Lumos": "Prints output to the console.",
+    "Alohomora": "Creates a variable.",
+    "Expecto": "Conditional statement (if).",
+    "Otherwise": "Else block of condition.",
+    "EndSpell": "Ends loops or condition blocks.",
+    "Reparo": "Loop structure.",
+    "Leviosa": "Increment variable.",
+    "Descendo": "Decrement variable.",
+    "Legilimens": "Read user input.",
+    "Hogwarts": "Select Hogwarts house mode."
+}
+
 class WizardIDE(QWidget):
 
     def __init__(self):
@@ -227,18 +243,13 @@ class WizardIDE(QWidget):
         title = QLabel("🏰 WizardLang Hogwarts IDE")
         main_layout.addWidget(title)
 
-        spell_list = [
-            "Lumos",
-            "Alohomora",
-            "Expecto",
-            "Otherwise",
-            "EndSpell",
-            "Reparo",
-            "Leviosa",
-            "Descendo",
-            "Legilimens",
-            "Hogwarts"
-        ]
+        editor_output_splitter = QSplitter(Qt.Orientation.Vertical)
+        main_layout.addWidget(editor_output_splitter)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        editor_output_splitter.addWidget(splitter)
+
+        spell_list = list(SPELL_DOCS.keys())
 
         model = QStringListModel()
         model.setStringList(spell_list)
@@ -248,20 +259,23 @@ class WizardIDE(QWidget):
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
+        self.spellbook = QListWidget()
+        for spell, doc in SPELL_DOCS.items():
+            item = QListWidgetItem(spell)
+            item.setToolTip(doc)
+            self.spellbook.addItem(item)
+        self.spellbook.itemClicked.connect(self.insert_spell)
+        splitter.addWidget(self.spellbook)
+
         # Code editor
         from PyQt6.QtWidgets import QPlainTextEdit
         self.editor = CodeEditor(self.completer)
         self.editor.setPlaceholderText("Write your spells here...")
-        main_layout.addWidget(self.editor)
-
-        self.setLayout(main_layout)
+        splitter.addWidget(self.editor)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 4)
 
         self.highlighter = SpellHighlighter(self.editor.document())
-
-        # Output console
-        self.output = QTextEdit()
-        self.output.setReadOnly(True)
-        main_layout.addWidget(self.output)
 
         # Buttons layout
         button_layout = QHBoxLayout()
@@ -280,6 +294,13 @@ class WizardIDE(QWidget):
 
         main_layout.addLayout(button_layout)
 
+        # Output console
+        self.output = QTextEdit()
+        self.output.setReadOnly(True)
+        editor_output_splitter.addWidget(self.output)
+        editor_output_splitter.setStretchFactor(0, 4)
+        editor_output_splitter.setStretchFactor(1, 1)
+
         # House selector
         self.house_selector = QComboBox()
         self.house_selector.addItems(
@@ -293,6 +314,24 @@ class WizardIDE(QWidget):
 
         # Apply default theme
         self.apply_theme("Gryffindor")
+
+    def insert_spell(self, item):
+            spell = item.text()
+            cursor = self.editor.textCursor()
+
+            if spell == "Lumos":
+                cursor.insertText('Lumos ""')
+            elif spell == "Alohomora":
+                cursor.insertText("Alohomora var = ")
+            elif spell == "Expecto":
+                cursor.insertText("Expecto condition\n")
+            elif spell == "Reparo":
+                cursor.insertText("Reparo counter until 5\n")
+            else:
+                cursor.insertText(spell + " ")
+
+            self.editor.setTextCursor(cursor)
+            self.editor.setFocus()
 
     def run_code(self):
 
